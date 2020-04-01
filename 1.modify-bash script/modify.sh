@@ -54,15 +54,16 @@ fi
 # fuction renames file according to currently set sed pattern
 function rename_file()
 {
-	file_name=$1
-
 	# get file name without path
-	old_name=`basename $file_name`
-	
+	old_name=$(basename $1)
 	file_extension=$(echo ".${old_name#*.}")
+	if [ -d $1 ]; then
+		file_extension=""
+	fi	
+	
 	#remove file extension	 
 	old_name=$(echo ${old_name/$file_extension/""})
-
+	
 	# modify name 
 	new_name=$(echo $old_name | sed $sed_pattern)
 	
@@ -70,14 +71,26 @@ function rename_file()
 		return
 	fi
 	
-	new_name=$(echo "$new_name$file_extension")
-
+	new_name="$(dirname $1)/$(echo "$new_name$file_extension")"
 	# rename file
-	mv $file_name $new_name 
+	mv $1 $new_name 
 }
 
-# main loop that changes files names
-for file_name in "${files_arr[@]}"
+function recursive_rename()
+{
+	# main loop that changes files names
+	if [ $recursive = 'y' ] && [ -d $1 ]; then
+		for file in "$1"/*
+		do
+			recursive_rename $file
+		done
+	fi
+
+	rename_file $1
+}
+
+# init renaming
+for arr_elem in "${files_arr[@]}"
 do
-	rename_file $file_name
+	recursive_rename $arr_elem 
 done
