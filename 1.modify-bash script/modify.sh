@@ -117,7 +117,7 @@ function recursive_rename()
 }
 
 # start renaming algorithm
-for arr_elem in "${files_arr[@]}"
+for passed_file in "${files_arr[@]}"
 do
-	recursive_rename $arr_elem 
+	recursive_rename $passed_file 
 done
