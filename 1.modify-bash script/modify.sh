@@ -1,3 +1,5 @@
+# Created by Wiktor Lazarski 02/04/2020
+
 #!/bin/bash
 
 script_name=$(basename $0)
@@ -16,10 +18,35 @@ function error_msg()
 function display_help()
 {
 	cat<<EOT
-usage:
+NAME
+	modify - modifies file names
+
+SYNOPSIS
+	./modify [OPTION]... [FILE]...
+
+DESCRIPTION
+	The script is dedicated to lowerizing file names, uppercasing file names or internally calling sed command with a given sed pattern which will operate on file names. Changes may be done either with recursion or without it.
+
 	$script_name [-r] [-l|-u] <dir/file names...>
 	$script_name [-r] <sed pattern> <dir/file names...>
 	$script_name [-h]
+
+	-h
+			display help
+		
+	-r
+			performs recursion modifications
+		
+	-l|-u
+			performs lowerizing/uppercasting of all specified files
+		
+	<sed pattern>
+			set modification pattern according to the one used in sed command
+
+	Options -l, -u or correct <sed pattern> must be specified for a script to be executed.
+
+AUTHOR
+	Written by Wiktor Lazarski
 EOT
 }
 
@@ -32,7 +59,7 @@ do
 		-r) recursive=y;;
 		-l) sed_pattern=$LOWERCASE_SED_PATTERN;;
 		-u) sed_pattern=$UPPERCASE_SED_PATTERN;;
-		-h) display_help;;
+		-h) display_help; exit 0;;
 		-*) error_msg "bad option $1"; exit 1;;
 		*)
 			if [ "$sed_pattern" = "$UNSPECIFIED_SED_PATTERN" ]; then
