@@ -13,7 +13,7 @@ function display_tree_structure()
 echo "------------------------------ PRINT HELP ----------------------------"
 echo "	./modify.sh -h"
 
-#./modify.sh -h
+./modify.sh -h
 
 echo ""
 
@@ -78,6 +78,22 @@ echo "./modify.sh -r s/WUT/t/ WUTesWUT WUTest.txt"
 
 display_tree_structure
 
+echo "					Step 4: Wrong pattern specified by the user"
+echo "Missing '/' at the end of sed pattern."
+echo "./modify.sh -r s/WUT/t tesWUT" 
+./modify.sh -r s/WUT/t tesWUT
+
+echo "Missing 's' at the beginning of sed pattern."
+echo "./modify.sh -r WUT/WUT/t/ tesWUT" 
+./modify.sh -r WUT/WUT/t/ tesWUT 
+
+echo "No first sed pattern argument specified"
+echo "./modify.sh -r s//t/ tesWUT" 
+./modify.sh -r s//t/ tesWUT
+
+echo ""
+echo "Error messages are displayed and file tree structure remains unchanged"
+display_tree_structure
 
 # remove file tree structure
 rm -r tesWUT test.txt

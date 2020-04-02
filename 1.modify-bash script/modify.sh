@@ -117,7 +117,6 @@ function recursive_rename()
 		done
 	fi
 
-
 	rename_file $1
 }
 
