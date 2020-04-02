@@ -109,7 +109,7 @@ function recursive_rename()
 		# iterate over all files in a passed directory
 		for file in "$1"/*
 		do
-			# chech end of folder
+			# check end of folder
 			if [ "$(basename $file)" = "*" ]; then
 				break
 			fi
