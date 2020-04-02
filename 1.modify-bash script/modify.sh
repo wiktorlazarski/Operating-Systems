@@ -1,6 +1,5 @@
-# Created by Wiktor Lazarski 02/04/2020
-
 #!/bin/bash
+# Created by Wiktor Lazarski 02/04/2020
 
 script_name=$(basename $0)
 declare -a files_arr
@@ -72,13 +71,13 @@ do
 	shift
 done
 
-# check if we received proper sed pattern
+# check correctness of sed pattern
 if ! [[ $sed_pattern =~ s/.+/.*/$ ]]; then
 	error_msg "invalid sed pattern specified"
 	exit 1
 fi
 
-# fuction renames file according to currently set sed pattern
+# function renames file according to currently set sed pattern
 function rename_file()
 {
 	# get file name without path
@@ -88,25 +87,26 @@ function rename_file()
 		file_extension=""
 	fi	
 	
-	#remove file extension	 
+	# remove file extension	 
 	old_name=$(echo ${old_name/$file_extension/""})
 	
-	# modify name 
 	new_name=$(echo $old_name | sed $sed_pattern)
-	
+	# check if renaming needed
 	if [ "$old_name" = "$new_name" ]; then
 		return
 	fi
-	
+
+	# add directory path and extension to a new file name
 	new_name="$(dirname $1)/$(echo "$new_name$file_extension")"
+	
 	# rename file
 	mv $1 $new_name 
 }
 
 function recursive_rename()
 {
-	# main loop that changes files names
 	if [ $recursive = 'y' ] && [ -d $1 ]; then
+		# iterate over all files in a passed directory
 		for file in "$1"/*
 		do
 			recursive_rename $file
@@ -116,7 +116,7 @@ function recursive_rename()
 	rename_file $1
 }
 
-# init renaming
+# start renaming algorithm
 for arr_elem in "${files_arr[@]}"
 do
 	recursive_rename $arr_elem 
