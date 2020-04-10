@@ -11,6 +11,8 @@
 #include <sys/wait.h>
 #include <signal.h>
 
+#define WITH_SIGNALS
+
 const unsigned int NUM_CHILD = 10;
 
 void terminate(unsigned int last_created, pid_t *ids);
@@ -18,12 +20,13 @@ void terminate(unsigned int last_created, pid_t *ids);
 int main(int argc, char **argv)
 {
 	pid_t process_ids[NUM_CHILD];
+	pid_t root_pid = getpid();
 
 	for(int i = 0; i < NUM_CHILD; i++) {
 		 pid_t pid = fork();
 
 		if(pid < 0) { //process not created
-			printf("Failed to create process - terminateinating program");
+			printf("parent[%d]: failed to create process - sending SIGTER, signal", root_pid);
 			terminate(i - 1, process_ids);
 			return 1;	
 		}
@@ -34,19 +37,24 @@ int main(int argc, char **argv)
 		else { //child process
 			pid_t child_pid = getpid();
 
-			printf("New process created with pid: %d\n", child_pid);
-			printf("Parent pid: %d\n", getppid());
+			printf("child[%d]: new process created with pid.\n", child_pid);
+			printf("child[%d]: parent pid: %d\n", child_pid,  getppid());
 			
 			sleep(10); //10s
 			
-			printf("Child process %d finished execution\n", child_pid);
+			printf("child[%d]: process finished execution\n", child_pid);
 			return 0;
 		}
 
 		sleep(1);//1s delay between child process creation
 	}
 
-	int exits[NUM_CHILD];
+	//store information about exits code of a process
+	struct exit {
+		int code;
+		pid_t id;
+	} exits_tab[NUM_CHILD];
+	
 	unsigned int loop_cnt = 0;
 	while(1) {
 		int code = 0;
@@ -54,18 +62,19 @@ int main(int argc, char **argv)
 		int child_pid = wait(&code);
 		//-1 means that all children terminated
 		if(child_pid == -1) {
-			printf("No more child processes\n");
+			printf("parent[%d]: no more child processes\n", root_pid);
 			break;
 		}
 
-		exits[loop_cnt] = code;
+		struct exit curr = {code, child_pid};
+		exits_tab[loop_cnt] = curr;
 		loop_cnt++;	
 	}
 	
 	//print exit codes
-	printf("---- Received %d exit codes ----\n", loop_cnt);
+	printf("\n---- Received %d exit codes ----\n", loop_cnt);
 	for(int i = 0; i < loop_cnt; i++){
-		printf("%d\t", exits[i]);
+		printf("child[%d]: exits with code %d\n", exits_tab[i].id, exits_tab[i].code);
 	}
 	
 	printf("\n");
