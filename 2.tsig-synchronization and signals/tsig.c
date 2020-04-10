@@ -4,21 +4,20 @@
 #include <unistd.h>
 #include <signal.h>
 
-const unsigned int NUM_CHILD = 10;
+const unsigned int NUM_CHILD = 3;
+
+void kill_processes(unsigned int last_created, pid_t *ids);
 
 int main(int argc, char **argv)
 {
-	int process_ids[NUM_CHILD];
+	pid_t process_ids[NUM_CHILD];
 
 	for(int i = 0; i < NUM_CHILD; i++) {
-		int pid = fork();
+		 pid_t pid = fork();
 
-		if(pid < 0) {
+		if(pid < 0) {	//process not created
 			printf("Failed to create process");
-			//kills all the children processes
-			for(int j = i - 1; j > 0; j--) {
-				kill(process_ids[j], SIGTERM);
-			}
+			kill_processes(i - 1, process_ids);
 			exit(1);
 		}
 		else if(pid > 0) {	//parent process
@@ -40,4 +39,10 @@ int main(int argc, char **argv)
 	}
 
 	return 0;
+}
+
+void kill_processes(unsigned int last_created, pid_t *ids) {
+	for(int j = last_created; j > 0; j--) {
+		retv = kill(ids[j], SIGTERM);
+	}
 }
