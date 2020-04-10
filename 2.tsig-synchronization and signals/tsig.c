@@ -11,7 +11,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-#define WITH_SIGNALS
+//#define WITH_SIGNALS
 
 const unsigned int NUM_CHILD = 10;
 
@@ -19,6 +19,12 @@ void terminate(unsigned int last_created, pid_t *ids);
 
 int main(int argc, char **argv)
 {
+	#ifdef WITH_SIGNALS
+	for(int sig = 1; sig < NSIG; sig++) {
+		signal(sig, SIG_IGN);
+	}
+	#endif
+	
 	pid_t process_ids[NUM_CHILD];
 	pid_t root_pid = getpid();
 
