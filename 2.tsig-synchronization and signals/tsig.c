@@ -1,3 +1,9 @@
+/*
+	Created by Wiktor Lazarski 10/04/2020
+	Operating Systems - Laboratory 2
+	Synchronization and signals.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -7,7 +13,7 @@
 
 const unsigned int NUM_CHILD = 10;
 
-void term(unsigned int last_created, pid_t *ids);
+void terminate(unsigned int last_created, pid_t *ids);
 
 int main(int argc, char **argv)
 {
@@ -17,8 +23,8 @@ int main(int argc, char **argv)
 		 pid_t pid = fork();
 
 		if(pid < 0) { //process not created
-			printf("Failed to create process - terminating program");
-			term(i - 1, process_ids);
+			printf("Failed to create process - terminateinating program");
+			terminate(i - 1, process_ids);
 			return 1;	
 		}
 		else if(pid > 0) { //parent process
@@ -37,7 +43,7 @@ int main(int argc, char **argv)
 			return 0;
 		}
 
-		sleep(1);//1s
+		sleep(1);//1s delay between child process creation
 	}
 
 	int exits[NUM_CHILD];
@@ -66,7 +72,7 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-void term(unsigned int last_created, pid_t *ids) {
+void terminate(unsigned int last_created, pid_t *ids) {
 	for(int j = last_created; j >= 0; j--) {
 		kill(ids[j], SIGTERM);
 	}
