@@ -1,15 +1,14 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <signal.h>
 
 const unsigned int NUM_CHILD = 10;
 
 int main(int argc, char **argv)
 {
 	for(int i = 0; i < NUM_CHILD; i++) {
-		int pid =	fork();
-	
+		int pid = fork();
+
 		if(pid < 0) {
 			printf("Failed to create process");
 			return 1;
