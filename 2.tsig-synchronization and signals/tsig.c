@@ -1,5 +1,5 @@
 /*
-*	Created by Wiktor Lazarski 10/04/2020
+*	Created by Wiktor Lazarski 11/04/2020
 *	Operating Systems - Laboratory 2
 *	Synchronization and signals.
 */
@@ -40,6 +40,7 @@ int main(int argc, char **argv)
 
 	for(int i = 0; i < NUM_CHILD; i++) {
 		#ifdef WITH_SIGNALS
+		//terminate child processes
 		if(is_interrupted) {
 			terminate(i - 1, process_ids);
 			printf("parent[%d]: creation interrupted.\n", root_pid);
@@ -61,8 +62,8 @@ int main(int argc, char **argv)
 		else { //child process
 			pid_t child_pid = getpid();
 
-			printf("child[%d]: new process created.\n", child_pid);
-			printf("child[%d]: parent pid: %d.\n", child_pid,  getppid());
+			printf("child[%d]: new process created, ", child_pid);
+			printf("parent pid: %d.\n",  getppid());
 			
 			sleep(10); //10s
 			
@@ -102,6 +103,10 @@ int main(int argc, char **argv)
 	}
 	
 	printf("\n");
+	//restore default handlers
+	for(int sig = 1; sig < NSIG; sig++) {
+		signal(sig, SIG_DFL);
+	}
 	return 0;
 }
 
@@ -113,7 +118,7 @@ void terminate(unsigned int last_created, pid_t *ids) {
 
 #ifdef WITH_SIGNALS
 void sigint_handler(int sig) {
-	printf("parent[%d]: interrupt\n", getppid());
+	printf("process[%d]: interrupt\n", getpid());
 	is_interrupted = true;
 }
 #endif
