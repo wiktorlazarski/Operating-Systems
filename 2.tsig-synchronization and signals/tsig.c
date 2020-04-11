@@ -39,6 +39,14 @@ int main(int argc, char **argv)
 	pid_t root_pid = getpid();
 
 	for(int i = 0; i < NUM_CHILD; i++) {
+		#ifdef WITH_SIGNALS
+		if(is_interrupted) {
+			terminate(i - 1, process_ids);
+			printf("parent[%d]: creation interrupted.\n", root_pid);
+			break;
+		}
+		#endif
+		
 		pid_t pid = fork();
 
 		if(pid < 0) { //process not created
