@@ -1,38 +1,48 @@
 /*
-	Created by Wiktor Lazarski 10/04/2020
-	Operating Systems - Laboratory 2
-	Synchronization and signals.
+*	Created by Wiktor Lazarski 10/04/2020
+*	Operating Systems - Laboratory 2
+*	Synchronization and signals.
 */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
 
-//#define WITH_SIGNALS
+#define WITH_SIGNALS
 
-const unsigned int NUM_CHILD = 10;
+const unsigned int NUM_CHILD = 11;
 
 void terminate(unsigned int last_created, pid_t *ids);
 
+#ifdef WITH_SIGNALS
+bool is_interrupted = false;
+void sigint_handler(int signal);
+#endif
+
 int main(int argc, char **argv)
 {
+	printf("---- tsig ----\n---- NUM_CHILD = %d ----\n", NUM_CHILD);
+
 	#ifdef WITH_SIGNALS
 	for(int sig = 1; sig < NSIG; sig++) {
 		signal(sig, SIG_IGN);
 	}
+	signal(SIGCHLD, SIG_DFL);
+	signal(SIGINT, sigint_handler);
 	#endif
 	
 	pid_t process_ids[NUM_CHILD];
 	pid_t root_pid = getpid();
 
 	for(int i = 0; i < NUM_CHILD; i++) {
-		 pid_t pid = fork();
+		pid_t pid = fork();
 
 		if(pid < 0) { //process not created
-			printf("parent[%d]: failed to create process - sending SIGTER, signal", root_pid);
+			printf("parent[%d]: failed to create process - sending SIGTER, signal.", root_pid);
 			terminate(i - 1, process_ids);
 			return 1;	
 		}
@@ -43,12 +53,12 @@ int main(int argc, char **argv)
 		else { //child process
 			pid_t child_pid = getpid();
 
-			printf("child[%d]: new process created with pid.\n", child_pid);
-			printf("child[%d]: parent pid: %d\n", child_pid,  getppid());
+			printf("child[%d]: new process created.\n", child_pid);
+			printf("child[%d]: parent pid: %d.\n", child_pid,  getppid());
 			
 			sleep(10); //10s
 			
-			printf("child[%d]: process finished execution\n", child_pid);
+			printf("child[%d]: process finished execution.\n", child_pid);
 			return 0;
 		}
 
@@ -68,7 +78,7 @@ int main(int argc, char **argv)
 		int child_pid = wait(&code);
 		//-1 means that all children terminated
 		if(child_pid == -1) {
-			printf("parent[%d]: no more child processes\n", root_pid);
+			printf("parent[%d]: no more child processes.\n", root_pid);
 			break;
 		}
 
@@ -80,7 +90,7 @@ int main(int argc, char **argv)
 	//print exit codes
 	printf("\n---- Received %d exit codes ----\n", loop_cnt);
 	for(int i = 0; i < loop_cnt; i++){
-		printf("child[%d]: exits with code %d\n", exits_tab[i].id, exits_tab[i].code);
+		printf("parent[%d]: child[%d] exits with code %d.\n", root_pid, exits_tab[i].id, exits_tab[i].code);
 	}
 	
 	printf("\n");
@@ -92,3 +102,10 @@ void terminate(unsigned int last_created, pid_t *ids) {
 		kill(ids[j], SIGTERM);
 	}
 }
+
+#ifdef WITH_SIGNALS
+void sigint_handler(int sig) {
+	printf("parent[%d]: interrupt\n", getppid());
+	is_interrupted = true;
+}
+#endif
