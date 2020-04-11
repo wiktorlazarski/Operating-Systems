@@ -20,19 +20,20 @@ void terminate(unsigned int last_created, pid_t *ids);
 
 #ifdef WITH_SIGNALS
 bool is_interrupted = false;
-void sigint_handler(int signal);
+void parent_sigint_handler(int signal);
+void child_sigterm_handler(int signal);
 #endif
 
 int main(int argc, char **argv)
 {
-	printf("---- tsig ----\n---- NUM_CHILD = %d ----\n", NUM_CHILD);
+	printf("---- Operating Systems Laboratory 'tsig' ----\n---- NUM_CHILD = %d ----\n", NUM_CHILD);
 
 	#ifdef WITH_SIGNALS
 	for(int sig = 1; sig < NSIG; sig++) {
 		signal(sig, SIG_IGN);
 	}
 	signal(SIGCHLD, SIG_DFL);
-	signal(SIGINT, sigint_handler);
+	signal(SIGINT, parent_sigint_handler);
 	#endif
 	
 	pid_t process_ids[NUM_CHILD];
@@ -61,6 +62,11 @@ int main(int argc, char **argv)
 		}
 		else { //child process
 			pid_t child_pid = getpid();
+			
+			#ifdef WITH_SIGNALS
+			signal(SIGINT, SIG_IGN);
+			signal(SIGTERM, child_sigterm_handler);
+			#endif
 
 			printf("child[%d]: new process created, ", child_pid);
 			printf("parent pid: %d.\n",  getppid());
@@ -117,8 +123,12 @@ void terminate(unsigned int last_created, pid_t *ids) {
 }
 
 #ifdef WITH_SIGNALS
-void sigint_handler(int sig) {
-	printf("process[%d]: interrupt\n", getpid());
+void parent_sigint_handler(int sig) {
+	printf("parent[%d]: interrupt\n", getpid());
 	is_interrupted = true;
+}
+
+void child_sigterm_handler(int signal) {
+	printf("child[%d]: process termination.\n", getpid());
 }
 #endif
