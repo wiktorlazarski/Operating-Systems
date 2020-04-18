@@ -14,7 +14,7 @@
 
 #define WITH_SIGNALS
 
-const unsigned int NUM_CHILD = 11;
+const unsigned int NUM_CHILD = 50;
 
 void terminate(unsigned int last_created, pid_t *ids);
 
