@@ -29,7 +29,7 @@ function clean()
 }
 
 # performs set of experiments and saves in results folder
-function task()
+function perform_experiments()
 {
 	SCHEDULER_CLASSNAME="Scheduling"
 	SUMMARY_PROCESSES_PATH="./task3/work/Summary-Processes"	
@@ -62,5 +62,5 @@ if [ "$1" == "clean" ]; then
 	clean
 else
 	setup_simulator
-	task
+	perform_experiments
 fi
