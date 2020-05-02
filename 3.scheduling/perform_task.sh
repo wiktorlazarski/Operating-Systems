@@ -50,7 +50,11 @@ function perform_experiments()
 		output_file="./results/$no_extension_basename-results.txt"
 		touch $output_file
 
-		cat $SUMMARY_PROCESSES_PATH > $output_file
+		echo "SUMMARY PROCESSES" > $output_file
+		cat $SUMMARY_PROCESSES_PATH >> $output_file
+		echo "" >> $output_file
+
+		echo "SUMMARY RESULTS" >> $output_file    
 		cat $SUMMARY_RESULTS_PATH >> $output_file 
 	done
 	
