@@ -6,18 +6,24 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <sys/wait.h>
+#include <sys/shm.h>
 #include <signal.h>
 
-typedef int semid;
+#define N_PHILOSOPHERS 5
+#define LEFT (i + N_PHILOSOPHERS - 1) % N_PHILOSOPHERS
+#define RIGHT (i + 1) % N_PHILOSOPHERS
 
-const unsigned int N_PHILOSOPHERS = 5;
-const key_t STATE_MUTEX_KEY =  0x1111;
-const key_t PHILOSOPHERS_MUTEXES_KEY = 0x1112;
+const key_t STATE_MUTEX_KEY =  0x1000;
+const key_t PHILOSOPHERS_MUTEXES_KEY = 0x2000;
+const key_t SHARED_MEMORY_KEY = 0x3000;
 
 enum state {THINKING, HUNGRY, EATING};
+struct shared_mem {
+	enum state states[N_PHILOSOPHERS];
+} *shm;
 
-void lock(int mutex);
-void unlock(int mutex);
+void lock(int semid, int idx);
+void unlock(int semid, int idx);
 
 void philosopher(int philo_id);
 
@@ -32,10 +38,26 @@ void terminate(unsigned int last_created, pid_t *ids);
 
 int main(int argc, char *argv[])
 {
-	enum state philosophers[N_PHILOSOPHERS];
+	//shared memory
+	int shm_id = shmget(SHARED_MEMORY_KEY, sizeof(struct shared_mem), 0600 | IPC_CREAT);
+	if(shm_id < 0) {
+		perror("shmget: shared memory not created");
+		return 1;
+	}
+
+	//attach memory
+	shm = shmat(shm_id, NULL, 0);
+	if(shm == (void*)-1) {
+		perror("shmat: failed to attach");
+		return 1;
+	} 
+	//init philosophers state
+	for(int i = 0; i < N_PHILOSOPHERS; i++){
+		shm->states[i] = THINKING;
+	}
 
 	//mutex for state changes
-	semid state_mutex = semget(STATE_MUTEX_KEY, 1, 0600 | IPC_CREAT);
+	int state_mutex = semget(STATE_MUTEX_KEY, 1, 0600 | IPC_CREAT);
 	if(state_mutex < 0) {
 		perror("semget: state mutex not created");
 		return 1;
@@ -54,7 +76,7 @@ int main(int argc, char *argv[])
 	}
 
 	//mutexes for philosopher grab\put away forks
-	semid philo_mutexes = semget(PHILOSOPHERS_MUTEXES_KEY, N_PHILOSOPHERS, 0600 | IPC_CREAT);
+	int philo_mutexes = semget(PHILOSOPHERS_MUTEXES_KEY, N_PHILOSOPHERS, 0600 | IPC_CREAT);
 	if(philo_mutexes < 0) {
 		perror("semget: philosophers mutexes not created");
 		return 1;
@@ -100,40 +122,77 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-void philosopher(int philo_id) {
+void philosopher(int id) {
 	while(true) {
-		think(philo_id);
-		grab_forks(philo_id);
-		eat(philo_id);
-		put_away_forks(philo_id);
+		think(id);
+		grab_forks(id);
+		eat(id);
+		put_away_forks(id);
 	}
 }
 
 void grab_forks(int left_fork_id) {
+	int i = left_fork_id;
+	int state_mutex = semget(STATE_MUTEX_KEY, 1, 0600);
+	int philo_mutexes = semget(PHILOSOPHERS_MUTEXES_KEY, N_PHILOSOPHERS, 0600);
+	if(state_mutex < 0 || philo_mutexes < 0) {
+		perror("grab_forks: error");
+		exit(1);
+	}
 
+	lock(state_mutex, 0);
+	shm->states[i] = HUNGRY;
+	test(i);
+	unlock(state_mutex, 0);
+	lock(philo_mutexes, i);
 }
 
 void put_away_forks(int left_fork_id) {
+	int i = left_fork_id;
 
+	int state_mutex = semget(STATE_MUTEX_KEY, 1, 0600);
+	if(state_mutex < 0) {
+		perror("put_away_forks: error");
+		exit(1);
+	}
+
+	lock(state_mutex, 0);
+	shm->states[i] = THINKING;
+	test(LEFT);
+	test(RIGHT);
+	unlock(state_mutex, 0);
 }
 
 void test(int philo_id) {
+	int philo_mutexes = semget(PHILOSOPHERS_MUTEXES_KEY, N_PHILOSOPHERS, 0600);
+	if(philo_mutexes < 0) {
+		perror("test: error");
+		exit(1);
+	}
 
+	bool is_hungry = shm->states[philo_id] == HUNGRY;
+	bool left_eat = shm->states[philo_id] == EATING;
+	bool right_eat = shm->states[philo_id] == EATING;
+
+	if(is_hungry && !left_eat && !right_eat) {
+		shm->states[philo_id] = EATING;
+		unlock(philo_mutexes, philo_id);
+	}
 }
 
-void lock(int sem) {
-	struct sembuf p = {sem, -1, SEM_UNDO};
+void lock(int semid, int idx) {
+	struct sembuf p = {idx, -1, SEM_UNDO};
 
-	if(semop(sem, &p, 1) < 0){
-		perror("semop unlock");
+	if(semop(semid, &p, 1) < 0){
+		perror("semop lock");
 		exit(1);
 	}
 }
 
-void unlock(int sem) {
-	struct sembuf v = {sem, +1, SEM_UNDO};
+void unlock(int semid, int idx) {
+	struct sembuf v = {idx, +1, SEM_UNDO};
 
-	if(semop(sem, &v, 1) < 0){
+	if(semop(semid, &v, 1) < 0){
 		perror("semop unlock");
 		exit(1);
 	}
@@ -141,10 +200,12 @@ void unlock(int sem) {
 
 void think(int philo) { 
 	printf("philosopher[%d]: THINKING\n", philo); 
+	sleep(2);
 }
 
 void eat(int philo) { 
 	printf("philosopher[%d]: EATING\n", philo); 
+	sleep(3);
 }
 
 void terminate(unsigned int last_created, pid_t *ids) {
