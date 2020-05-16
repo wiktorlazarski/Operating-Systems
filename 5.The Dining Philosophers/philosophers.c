@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
 	//init mutexes couters
 	unsigned int ones[N_PHILOSOPHERS];
 	for(int i = 0; i < N_PHILOSOPHERS; i++) {
-		ones[i] = 1;
+		ones[i] = 1; 
 	}
 	sem_un.array = ones;
 	if(semctl(philo_mutexes, N_PHILOSOPHERS, SETALL, sem_un) < 0) {
@@ -139,6 +139,7 @@ void grab_forks(int left_fork_id) {
 		perror("grab_forks: error");
 		exit(1);
 	}
+	printf("%d\n", philo_mutexes); 
 
 	lock(state_mutex, 0);
 	shm->states[i] = HUNGRY;
@@ -164,6 +165,8 @@ void put_away_forks(int left_fork_id) {
 }
 
 void test(int philo_id) {
+	int i = philo_id;
+
 	int philo_mutexes = semget(PHILOSOPHERS_MUTEXES_KEY, N_PHILOSOPHERS, 0600);
 	if(philo_mutexes < 0) {
 		perror("test: error");
@@ -171,8 +174,8 @@ void test(int philo_id) {
 	}
 
 	bool is_hungry = shm->states[philo_id] == HUNGRY;
-	bool left_eat = shm->states[philo_id] == EATING;
-	bool right_eat = shm->states[philo_id] == EATING;
+	bool left_eat = shm->states[LEFT] == EATING;
+	bool right_eat = shm->states[RIGHT] == EATING;
 
 	if(is_hungry && !left_eat && !right_eat) {
 		shm->states[philo_id] = EATING;
