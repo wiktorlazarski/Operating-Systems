@@ -39,7 +39,7 @@ void terminate(unsigned int last_created, pid_t *ids);
 int main(int argc, char *argv[])
 {
 	//shared memory
-	int shm_id = shmget(SHARED_MEMORY_KEY, sizeof(struct shared_mem), 0600 | IPC_CREAT);
+	int shm_id = shmget(SHARED_MEMORY_KEY, sizeof(struct shared_mem), 0666 | IPC_CREAT);
 	if(shm_id < 0) {
 		perror("shmget: shared memory not created");
 		return 1;
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 	}
 
 	//mutex for state changes
-	int state_mutex = semget(STATE_MUTEX_KEY, 1, 0600 | IPC_CREAT);
+	int state_mutex = semget(STATE_MUTEX_KEY, 1, 0666 | IPC_CREAT);
 	if(state_mutex < 0) {
 		perror("semget: state mutex not created");
 		return 1;
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
 	}
 
 	//mutexes for philosopher grab\put away forks
-	int philo_mutexes = semget(PHILOSOPHERS_MUTEXES_KEY, N_PHILOSOPHERS, 0600 | IPC_CREAT);
+	int philo_mutexes = semget(PHILOSOPHERS_MUTEXES_KEY, N_PHILOSOPHERS, 0666 | IPC_CREAT);
 	if(philo_mutexes < 0) {
 		perror("semget: philosophers mutexes not created");
 		return 1;
@@ -133,13 +133,13 @@ void philosopher(int id) {
 
 void grab_forks(int left_fork_id) {
 	int i = left_fork_id;
-	int state_mutex = semget(STATE_MUTEX_KEY, 1, 0600);
-	int philo_mutexes = semget(PHILOSOPHERS_MUTEXES_KEY, N_PHILOSOPHERS, 0600);
+
+	int state_mutex = semget(STATE_MUTEX_KEY, 1, 0666);
+	int philo_mutexes = semget(PHILOSOPHERS_MUTEXES_KEY, N_PHILOSOPHERS, 0666);
 	if(state_mutex < 0 || philo_mutexes < 0) {
 		perror("grab_forks: error");
 		exit(1);
 	}
-	printf("%d\n", philo_mutexes); 
 
 	lock(state_mutex, 0);
 	shm->states[i] = HUNGRY;
@@ -151,7 +151,7 @@ void grab_forks(int left_fork_id) {
 void put_away_forks(int left_fork_id) {
 	int i = left_fork_id;
 
-	int state_mutex = semget(STATE_MUTEX_KEY, 1, 0600);
+	int state_mutex = semget(STATE_MUTEX_KEY, 1, 0666);
 	if(state_mutex < 0) {
 		perror("put_away_forks: error");
 		exit(1);
@@ -167,7 +167,7 @@ void put_away_forks(int left_fork_id) {
 void test(int philo_id) {
 	int i = philo_id;
 
-	int philo_mutexes = semget(PHILOSOPHERS_MUTEXES_KEY, N_PHILOSOPHERS, 0600);
+	int philo_mutexes = semget(PHILOSOPHERS_MUTEXES_KEY, N_PHILOSOPHERS, 0666);
 	if(philo_mutexes < 0) {
 		perror("test: error");
 		exit(1);
@@ -208,7 +208,7 @@ void think(int philo) {
 
 void eat(int philo) { 
 	printf("philosopher[%d]: EATING\n", philo); 
-	sleep(3);
+	sleep(10);
 }
 
 void terminate(unsigned int last_created, pid_t *ids) {
