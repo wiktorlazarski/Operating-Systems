@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 		perror("semget: state mutex not created");
 		return 1;
 	}
-	
+
 	union semaphore_un{
 		int val;
 		unsigned int *array;
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 		ones[i] = 1; 
 	}
 	sem_un.array = ones;
-	if(semctl(philo_mutexes, N_PHILOSOPHERS, SETALL, sem_un) < 0) {
+	if(semctl(philo_mutexes, 0, SETALL, sem_un) < 0) {
 		perror("semctl: philo mutexes values failed to set");
 		return 1;
 	}
@@ -112,11 +112,11 @@ int main(int argc, char *argv[])
 			return 0;
 		}
 	}
-
+	
+	sleep(100);
 	//waits for child processes to terminate
 	for(int i = 0; i < N_PHILOSOPHERS; i++) {
-		int code;
-		wait(&code);	
+		kill(process_ids[i], SIGTERM);
 	}
 	
 	return 0;
@@ -140,7 +140,7 @@ void grab_forks(int left_fork_id) {
 		perror("grab_forks: error");
 		exit(1);
 	}
-
+	
 	lock(state_mutex, 0);
 	shm->states[i] = HUNGRY;
 	test(i);
@@ -156,7 +156,7 @@ void put_away_forks(int left_fork_id) {
 		perror("put_away_forks: error");
 		exit(1);
 	}
-
+	
 	lock(state_mutex, 0);
 	shm->states[i] = THINKING;
 	test(LEFT);
@@ -176,7 +176,7 @@ void test(int philo_id) {
 	bool is_hungry = shm->states[philo_id] == HUNGRY;
 	bool left_eat = shm->states[LEFT] == EATING;
 	bool right_eat = shm->states[RIGHT] == EATING;
-
+	
 	if(is_hungry && !left_eat && !right_eat) {
 		shm->states[philo_id] = EATING;
 		unlock(philo_mutexes, philo_id);
@@ -185,7 +185,7 @@ void test(int philo_id) {
 
 void lock(int semid, int idx) {
 	struct sembuf p = {idx, -1, SEM_UNDO};
-
+	
 	if(semop(semid, &p, 1) < 0){
 		perror("semop lock");
 		exit(1);
@@ -203,12 +203,14 @@ void unlock(int semid, int idx) {
 
 void think(int philo) { 
 	printf("philosopher[%d]: THINKING\n", philo); 
+	fflush(stdout);
 	sleep(2);
 }
 
 void eat(int philo) { 
 	printf("philosopher[%d]: EATING\n", philo); 
-	sleep(10);
+	fflush(stdout);
+	sleep(2);
 }
 
 void terminate(unsigned int last_created, pid_t *ids) {
