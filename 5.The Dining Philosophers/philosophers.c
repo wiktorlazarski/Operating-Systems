@@ -14,7 +14,7 @@
 #define RIGHT (i + 1) % N_PHILOSOPHERS
 
 const key_t STATE_MUTEX_KEY =  0x1000;
-const key_t PHILOSOPHERS_MUTEXES_KEY = 0x2000;
+const key_t PHILOSOPHERS_SEMAPHORES_KEY = 0x2000;
 const key_t SHARED_MEMORY_KEY = 0x3000;
 
 enum state {THINKING, HUNGRY, EATING};
@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
 		perror("shmat: failed to attach");
 		return 1;
 	} 
+
 	//init philosophers state
 	for(int i = 0; i < N_PHILOSOPHERS; i++){
 		shm->states[i] = THINKING;
@@ -76,20 +77,20 @@ int main(int argc, char *argv[])
 	}
 
 	//mutexes for philosopher grab\put away forks
-	int philo_mutexes = semget(PHILOSOPHERS_MUTEXES_KEY, N_PHILOSOPHERS, 0666 | IPC_CREAT);
-	if(philo_mutexes < 0) {
-		perror("semget: philosophers mutexes not created");
+	int philo_sems = semget(PHILOSOPHERS_SEMAPHORES_KEY, N_PHILOSOPHERS, 0666 | IPC_CREAT);
+	if(philo_sems < 0) {
+		perror("semget: philosophers semaphores not created");
 		return 1;
 	}
 
-	//init mutexes couters
-	unsigned int ones[N_PHILOSOPHERS];
+	//init semaphores
+	unsigned int zeros[N_PHILOSOPHERS];
 	for(int i = 0; i < N_PHILOSOPHERS; i++) {
-		ones[i] = 1; 
+		zeros[i] = 0; 
 	}
-	sem_un.array = ones;
-	if(semctl(philo_mutexes, 0, SETALL, sem_un) < 0) {
-		perror("semctl: philo mutexes values failed to set");
+	sem_un.array = zeros;
+	if(semctl(philo_sems, 0, SETALL, sem_un) < 0) {
+		perror("semctl: philo semaphores values failed to set");
 		return 1;
 	}
 
@@ -113,12 +114,12 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	sleep(100);
-	//waits for child processes to terminate
-	for(int i = 0; i < N_PHILOSOPHERS; i++) {
-		kill(process_ids[i], SIGTERM);
-	}
 	
+	sleep(60);	//60s runtime
+
+	//waits for child processes to terminate
+	terminate(N_PHILOSOPHERS - 1, process_ids);
+
 	return 0;
 }
 
@@ -135,8 +136,8 @@ void grab_forks(int left_fork_id) {
 	int i = left_fork_id;
 
 	int state_mutex = semget(STATE_MUTEX_KEY, 1, 0666);
-	int philo_mutexes = semget(PHILOSOPHERS_MUTEXES_KEY, N_PHILOSOPHERS, 0666);
-	if(state_mutex < 0 || philo_mutexes < 0) {
+	int philo_sems = semget(PHILOSOPHERS_SEMAPHORES_KEY, N_PHILOSOPHERS, 0666);
+	if(state_mutex < 0 || philo_sems < 0) {
 		perror("grab_forks: error");
 		exit(1);
 	}
@@ -145,7 +146,7 @@ void grab_forks(int left_fork_id) {
 	shm->states[i] = HUNGRY;
 	test(i);
 	unlock(state_mutex, 0);
-	lock(philo_mutexes, i);
+	lock(philo_sems, i);
 }
 
 void put_away_forks(int left_fork_id) {
@@ -167,8 +168,8 @@ void put_away_forks(int left_fork_id) {
 void test(int philo_id) {
 	int i = philo_id;
 
-	int philo_mutexes = semget(PHILOSOPHERS_MUTEXES_KEY, N_PHILOSOPHERS, 0666);
-	if(philo_mutexes < 0) {
+	int philo_sems = semget(PHILOSOPHERS_SEMAPHORES_KEY, N_PHILOSOPHERS, 0666);
+	if(philo_sems < 0) {
 		perror("test: error");
 		exit(1);
 	}
@@ -179,7 +180,7 @@ void test(int philo_id) {
 	
 	if(is_hungry && !left_eat && !right_eat) {
 		shm->states[philo_id] = EATING;
-		unlock(philo_mutexes, philo_id);
+		unlock(philo_sems, philo_id);
 	}
 }
 
@@ -204,13 +205,13 @@ void unlock(int semid, int idx) {
 void think(int philo) { 
 	printf("philosopher[%d]: THINKING\n", philo); 
 	fflush(stdout);
-	sleep(2);
+	sleep(3);
 }
 
 void eat(int philo) { 
 	printf("philosopher[%d]: EATING\n", philo); 
 	fflush(stdout);
-	sleep(2);
+	sleep(3);
 }
 
 void terminate(unsigned int last_created, pid_t *ids) {
