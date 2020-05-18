@@ -114,7 +114,6 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	
 	sleep(60);	//60s runtime
 
 	//waits for child processes to terminate
