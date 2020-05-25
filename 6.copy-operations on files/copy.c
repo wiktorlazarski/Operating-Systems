@@ -21,63 +21,50 @@ int copy_read_write(int fd_from, int fd_to);
 int copy_mmap(int fd_from, int fd_to);
 void help();
 
-const char** load_params(int argc, char* argv[], int required); 
+const char** load_paths(int argc, char* argv[], int required); 
 
 int main(int argc, char *argv[])
 {
-	int opt, fd_in, fd_out, result;
-	const char **files;
-
+	bool mmap_copy = false;
+	int opt;
 	while((opt = getopt(argc, argv, ":mh")) != -1){
 		switch(opt){
 			case 'h':
 				help();
 				return 0;
 			case 'm':
-				files = load_params(argc, argv, MMAP_N_ARGS);
-				fd_in = open(files[SRC_FILE_IDX], O_RDONLY);
-				if(fd_in < 0){
-					printf("ERROR: failed to open src file");
-					exit(FAILED);
-				}
-
-				fd_out = open(files[DST_FILE_IDX], O_RDWR | O_CREAT);
-				if(fd_out < 0){
-					printf("ERROR: failed to open dst file");
-					exit(FAILED);
-				}
-
-				result = copy_mmap(fd_in, fd_out);
-				close(fd_in);
-				close(fd_out);
-
-				return result;
+				mmap_copy = true;	
+				break;
 			case '?':
 				printf("ERROR: unknown operation: %c\n", optopt);
 				exit(FAILED);
 		}
 	}
 	
-	files = load_params(argc, argv, RW_N_ARGS);
+	size_t n_args = mmap_copy ? MMAP_N_ARGS : RW_N_ARGS;
 	
-	fd_in = open(files[SRC_FILE_IDX], O_RDONLY);
-	if(fd_in < 0){
+	const char **files;
+	files = load_paths(argc, argv, n_args);
+	
+	int src_file = open(files[SRC_FILE_IDX], O_RDONLY);
+	if(src_file < 0){
 		printf("ERROR: failed to open src file");
 		exit(FAILED);
 	}
 	
-	struct stat in_stat;
-	if(fstat(fd_in, &in_stat)){
+	struct stat src_stat;
+	if(fstat(src_file, &src_stat)){
 		printf("ERROR: failed to load src mode information");
 		exit(FAILED);
 	}
-	fd_out = open(files[DST_FILE_IDX], O_RDWR | O_CREAT, in_stat.st_mode);
-	if(fd_out < 0){
+	
+	int dst_file = open(files[DST_FILE_IDX], O_RDWR | O_CREAT, src_stat.st_mode);
+	if(dst_file < 0){
 		printf("ERROR: failed to open dst file");
 		exit(FAILED);
 	}
 	
-	result = copy_read_write(fd_in, fd_out);
+	int result = mmap_copy ? copy_mmap(src_file, dst_file) : copy_read_write(src_file, dst_file);
 	return result;
 }
 
@@ -102,7 +89,7 @@ int copy_mmap(int fd_from, int fd_to){
 	return SUCCESS;
 }
 
-const char** load_params(int argc, char* argv[], int required){
+const char** load_paths(int argc, char* argv[], int required){
 	if(argc < required){
 		printf("ERROR: not enought parameters specified\n");
 		exit(FAILED);
