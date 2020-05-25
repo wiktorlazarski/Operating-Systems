@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 
 #define SUCCESS 0
 #define FAILED 1
@@ -63,8 +65,13 @@ int main(int argc, char *argv[])
 		printf("ERROR: failed to open src file");
 		exit(FAILED);
 	}
-
-	fd_out = open(files[DST_FILE_IDX], O_RDWR | O_CREAT);
+	
+	struct stat in_stat;
+	if(fstat(fd_in, &in_stat)){
+		printf("ERROR: failed to load src mode information");
+		exit(FAILED);
+	}
+	fd_out = open(files[DST_FILE_IDX], O_RDWR | O_CREAT, in_stat.st_mode);
 	if(fd_out < 0){
 		printf("ERROR: failed to open dst file");
 		exit(FAILED);
