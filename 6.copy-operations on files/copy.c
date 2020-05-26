@@ -1,6 +1,6 @@
 /***
 *	Operating Systems - Laboratory 6
-* Operations on files
+*	Operations on files
 *	Created by Wiktor Lazarski 25/05/2020
 */
 
@@ -34,6 +34,7 @@ int main(int argc, char *argv[])
 {
 	bool mmap_copy = false;
 	int opt;
+	//command line parameter processing
 	while((opt = getopt(argc, argv, ":mh")) != -1){
 		switch(opt){
 			case 'h':
@@ -48,7 +49,14 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	size_t n_args = mmap_copy ? MMAP_N_ARGS : RW_N_ARGS;
+	//check if program was executed with no parameters
+	size_t n_args = 1;
+	if(argc == n_args){
+		help();
+		return 0;
+	}
+
+	n_args = mmap_copy ? MMAP_N_ARGS : RW_N_ARGS;
 	
 	const char **files;
 	files = load_paths(argc, argv, n_args);
@@ -146,5 +154,13 @@ const char** load_paths(int argc, char* argv[], int required){
 }
 
 void help(){
-	printf("HELP!!!\n");
+	printf("NAME:\n\tcopy - copies content of one file to another one.\n");
+	printf("SYNOPSIS:\n\t./copy [OPTION]... [FILE]...\t");
+	printf("\nDESCRIPTION:\nThe program is dedicated to copy content of one file to another one with two algorithms ");
+	printf("Using standard read/write approach and memory mapping copying.");
+	printf("\n\n\t./copy [-m] <file_name> <new_file_name>");
+	printf("\n\t./copy [-h]\n");
+	printf("\nWithout oprion -m use read() and write() functions to copy file contents. ");
+	printf("If the options -m is given, do not use neither read() nor write() but map files to memor regions with mmap() and copy the file with memcpy() instead.");
+	printf("\nIf the options -h is given or the progeam is called without arguments print out some help information.\n");
 }
