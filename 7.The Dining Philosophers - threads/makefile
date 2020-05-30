@@ -1,11 +1,9 @@
 NAME = philosophers
 
-COMPILER = cc
-
-CFLAGS = -Wall -std=c99
+COMPILER = gcc
 
 compile: philosophers.o
-	$(COMPILER) $(FLAGS) -o $(NAME) philosophers.o
+	$(COMPILER) $(FLAGS) -o $(NAME) philosophers.o -lpthread
 
 philosophers.o:
 	$(COMPILER) -c philosophers.c
