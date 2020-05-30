@@ -25,7 +25,7 @@ pthread_mutex_t s[N_PHILOSOPHERS];
 
 int main(int argc, char *argv[])
 {
-	//init philosopher ids and state
+	//init philosopher ids and states
 	for(int i = 0; i < N_PHILOSOPHERS; i++){
 		philo_id[i] = i;
 		states[i] = THINKING;
@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
 
 void *philosopher(void *arg){
 	int philo_id = *((int *)arg);
+
 	while(true){
 		think(philo_id);
 		grab_forks(philo_id);
@@ -105,12 +106,10 @@ void test(int i){
 
 void think(int i){
 	printf("philosopher[%d]: THINKING\n", i);
-	fflush(stdout);
 	sleep(3);
 }
 
 void eat(int i){
 	printf("philosopher[%d]: EATING\n", i);
-	fflush(stdout);
 	sleep(3);
 }
