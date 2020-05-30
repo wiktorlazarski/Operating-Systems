@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 {
 	//init philosopher ids and state
 	for(int i = 0; i < N_PHILOSOPHERS; i++){
-		philo_id[i] = i + 1;
+		philo_id[i] = i;
 		states[i] = THINKING;
 	}
 
@@ -44,7 +44,10 @@ int main(int argc, char *argv[])
 	//create threads
 	pthread_t philo_tid[N_PHILOSOPHERS];
 	for(int i = 0; i < N_PHILOSOPHERS; i++){
-		pthread_create(&philo_tid[i], NULL, philosopher, (void *)&philo_id[i]);
+		if(pthread_create(&philo_tid[i], NULL, philosopher, (void *)&philo_id[i]) != 0){
+			perror("failed to create thread");
+			exit(1);
+		}
 	}
 	
 	sleep(60);	//60s runtime
@@ -74,22 +77,40 @@ void *philosopher(void *arg){
 }
 
 void grab_forks(int i){
+	pthread_mutex_lock(&m);
+	states[i] = HUNGRY;
+	test(i);
+	pthread_mutex_unlock(&m);
+	pthread_mutex_lock(&s[i]);
 }
 
 void put_away_forks(int i){
+	pthread_mutex_lock(&m);
+	states[i] = THINKING;
+	test(LEFT);
+	test(RIGHT);
+	pthread_mutex_unlock(&m);
 }
 
 void test(int i){
+	bool is_hungry = states[i] == HUNGRY;
+	bool left_eat = states[LEFT] == EATING;
+	bool right_eat = states[RIGHT] == EATING;
+
+	if(is_hungry && !left_eat && !right_eat){
+		states[i] = EATING;
+		pthread_mutex_unlock(&s[i]);
+	}
 }
 
 void think(int i){
-	printf("philosopher[%d]: EATING\n", i);
+	printf("philosopher[%d]: THINKING\n", i);
 	fflush(stdout);
 	sleep(3);
 }
 
 void eat(int i){
-	printf("philosopher[%d]: THINKING\n", i);
+	printf("philosopher[%d]: EATING\n", i);
 	fflush(stdout);
 	sleep(3);
 }
