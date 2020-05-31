@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
 	for(int i = 0; i < N_PHILOSOPHERS; i++){
 		if(pthread_mutex_init(&s[i], NULL) != 0){
 			perror("failed to init mutex\n");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 		//set init state to lock
 		pthread_mutex_lock(&s[i]);
@@ -46,27 +46,29 @@ int main(int argc, char *argv[])
 	for(int i = 0; i < N_PHILOSOPHERS; i++){
 		if(pthread_create(&philo_tid[i], NULL, philosopher, (void *)&philo_id[i]) != 0){
 			perror("failed to create thread");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 	}
 	
 	sleep(60);	//60s runtime
 	
-	//terminate threads
+	//terminate threads and destroy philosopher mutexes
 	for(int i = 0; i < N_PHILOSOPHERS; i++){
 		pthread_cancel(philo_tid[i]);
 		pthread_join(philo_tid[i], NULL);
-	}
-
-	//destroy philosopher mutexes
-	for(int i = 0; i < N_PHILOSOPHERS; i++){
+		
 		pthread_mutex_destroy(&s[i]);
 	}
-	
-	return 0;
+
+	return EXIT_SUCCESS;
 }
 
 void *philosopher(void *arg){
+	if(pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL) != 0){
+		perror("failed pthread_setcanceltupe");
+		exit(EXIT_FAILURE);
+	}
+	
 	int philo_id = *((int *)arg);
 
 	while(true){
@@ -75,6 +77,8 @@ void *philosopher(void *arg){
 		eat(philo_id);
 		put_away_forks(philo_id);
 	}
+	
+	return NULL;
 }
 
 void grab_forks(int i){
